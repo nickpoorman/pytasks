@@ -1,4 +1,4 @@
-# gopy
+# pytasks
 
 [![GoDoc](https://godoc.org/github.com/nickpoorman/pytasks?status.svg)](https://godoc.org/github.com/nickpoorman/pytasks)
 [![CircleCI](https://circleci.com/gh/nickpoorman/pytasks.svg?style=svg)](https://circleci.com/gh/nickpoorman/pytasks)
@@ -22,7 +22,7 @@ Or, clone the repository:
 A complete example:
 
 ```bash
-mkdir gopy-app && cd gopy-app
+mkdir pytasks-app && cd pytasks-app
 
 cat > go.mod <<-END
   module my-dataframe-app
