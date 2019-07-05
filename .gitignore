@@ -1,0 +1,5 @@
+tmp/
+*.test
+bin/
+vendor/
+__pycache__/
