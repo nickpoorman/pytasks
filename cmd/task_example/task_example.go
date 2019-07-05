@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/nickpoorman/go-python3"
+	"github.com/DataDog/go-python3"
 	"github.com/nickpoorman/pytasks"
 )
 

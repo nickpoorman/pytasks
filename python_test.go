@@ -3,7 +3,7 @@ package pytasks
 import (
 	"testing"
 
-	"github.com/nickpoorman/go-python3"
+	"github.com/DataDog/go-python3"
 )
 
 func BechmarkAll(b *testing.B) {

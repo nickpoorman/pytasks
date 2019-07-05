@@ -29,7 +29,7 @@ cat > go.mod <<-END
 
   require (
       github.com/nickpoorman/pytasks master
-      github.com/nickpoorman/go-python3 master
+      github.com/DataDog/go-python3 master
   )
 END
 
@@ -37,7 +37,7 @@ cat > main.go <<-END
     package main
 
     import (
-        "github.com/nickpoorman/go-python3"
+        "github.com/DataDog/go-python3"
         "github.com/nickpoorman/pytasks"
     )
 
