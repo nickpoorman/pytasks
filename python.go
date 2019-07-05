@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/DataDog/go-python3"
+	"github.com/nickpoorman/go-python3"
 )
 
 var singletonOnce sync.Once

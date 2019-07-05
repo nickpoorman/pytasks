@@ -37,7 +37,7 @@ cat > main.go <<-END
     package main
 
     import (
-        "github.com/DataDog/go-python3"
+        "github.com/nickpoorman/go-python3"
         "github.com/nickpoorman/pytasks"
     )
 
