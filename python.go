@@ -2,9 +2,9 @@ package pytasks
 
 import (
 	"errors"
-	"fmt"
 	"runtime"
 	"sync"
+	"sync/atomic"
 
 	"github.com/DataDog/go-python3"
 )
@@ -22,7 +22,7 @@ type PythonSingleton interface {
 	ImportModule(name string) (*python3.PyObject, error)
 	NewTask(task func()) (*sync.WaitGroup, error)
 	NewTaskSync(task func()) error
-	Finalize(from ...string) error
+	Finalize() error
 }
 
 type pythonSingleton struct {
@@ -30,8 +30,7 @@ type pythonSingleton struct {
 	stopWG    sync.WaitGroup
 	stoppedWG sync.WaitGroup
 
-	lock     sync.Mutex
-	stopped  bool
+	stopped  int32
 	stopOnce sync.Once
 }
 
@@ -124,9 +123,7 @@ func (ps *pythonSingleton) initPython(opts ...PythonSingletonOption) *Tuple {
 // This returns a WaitGroup that will release when it is ready to continue processing and use it's return value
 // meaning the Python GIL has been released.
 func (ps *pythonSingleton) NewTask(task func()) (*sync.WaitGroup, error) {
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
-	if ps.stopped {
+	if atomic.LoadInt32(&ps.stopped) == 1 {
 		return nil, errors.New("Finalize has been called on PythonSingleton. No new operations")
 	}
 
@@ -175,14 +172,13 @@ func (ps *pythonSingleton) newTask(task func()) (*sync.WaitGroup, error) {
 
 // Finalize trigger the thread that started python to stop it.
 // It will block until Python has stopped.
-func (ps *pythonSingleton) Finalize(from ...string) error {
-	fmt.Printf("Called Finalize %v\n", from)
-	ps.lock.Lock()
-	if ps.stopped {
+func (ps *pythonSingleton) Finalize() error {
+	// Wait for any tasks to finish
+	ps.taskWG.Wait()
+
+	if atomic.SwapInt32(&ps.stopped, 1) == 1 {
 		return errors.New("Finalize already called on PythonSingleton")
 	}
-	ps.stopped = true
-	ps.lock.Unlock()
 
 	ps.stopOnce.Do(func() {
 		go func() {
@@ -196,9 +192,7 @@ func (ps *pythonSingleton) Finalize(from ...string) error {
 // ImportModule will import the python module and add it
 // to the registry or return an already imported module.
 func (ps *pythonSingleton) ImportModule(name string) (*python3.PyObject, error) {
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
-	if ps.stopped {
+	if atomic.LoadInt32(&ps.stopped) == 1 {
 		return nil, errors.New("Finalize has been called on PythonSingleton. No new operations")
 	}
 

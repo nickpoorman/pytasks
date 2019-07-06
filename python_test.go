@@ -50,7 +50,7 @@ func BechmarkAll(b *testing.B) {
 	// At this point we know we won't need Python anymore in this
 	// program, we can restore the state and lock the GIL to perform
 	// the final operations before exiting.
-	err := GetPythonSingleton().Finalize("BenchmarkPy cleanup")
+	err := GetPythonSingleton().Finalize()
 	if err != nil {
 		panic(err)
 	}
@@ -92,7 +92,7 @@ func TestAll(t *testing.T) {
 		// At this point we know we won't need Python anymore in this
 		// program, we can restore the state and lock the GIL to perform
 		// the final operations before exiting.
-		err := py.Finalize("TestSingletonFinalize1")
+		err := py.Finalize()
 		if err != nil {
 			panic(err)
 		}
@@ -107,7 +107,7 @@ func TestAll(t *testing.T) {
 			t.Fatalf("expected to get an error for NewTask")
 		}
 
-		err = py.Finalize("TestSingletonFinalize2")
+		err = py.Finalize()
 		if err == nil {
 			t.Fatalf("expected to get an error for Finalize")
 		}
