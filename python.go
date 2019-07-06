@@ -21,6 +21,7 @@ type Tuple struct {
 type PythonSingleton interface {
 	ImportModule(name string) (*python3.PyObject, error)
 	NewTask(task func()) (*sync.WaitGroup, error)
+	NewTaskSync(task func()) error
 	Finalize(from ...string) error
 }
 
@@ -30,7 +31,6 @@ type pythonSingleton struct {
 	stoppedWG sync.WaitGroup
 
 	lock     sync.Mutex
-	modules  map[string]*python3.PyObject
 	stopped  bool
 	stopOnce sync.Once
 }
@@ -53,9 +53,7 @@ func WithModules(modules []string) PythonSingletonOption {
 // or creates a new one if one has not been created yet.
 func GetPythonSingleton(opts ...PythonSingletonOption) PythonSingleton {
 	singletonOnce.Do(func() {
-		ps := &pythonSingleton{
-			modules: make(map[string]*python3.PyObject),
-		}
+		ps := &pythonSingleton{}
 		tuple := ps.initPython(opts...)
 		startedWG := tuple.Result.(*sync.WaitGroup)
 		startedWG.Wait()
@@ -76,6 +74,7 @@ func (ps *pythonSingleton) initPython(opts ...PythonSingletonOption) *Tuple {
 	}
 	go func() {
 		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
 
 		// The following will also create the GIL explicitly
 		// by calling PyEval_InitThreads(), without waiting
@@ -197,16 +196,10 @@ func (ps *pythonSingleton) Finalize(from ...string) error {
 // ImportModule will import the python module and add it
 // to the registry or return an already imported module.
 func (ps *pythonSingleton) ImportModule(name string) (*python3.PyObject, error) {
-	fmt.Printf("Importing module: %s | existing: %v\n", name, ps.LoadedModuleNames())
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 	if ps.stopped {
 		return nil, errors.New("Finalize has been called on PythonSingleton. No new operations")
-	}
-
-	// Return the module if is has already been initialized.
-	if mod, ok := ps.modules[name]; ok {
-		return mod, nil
 	}
 
 	var module *python3.PyObject
@@ -226,25 +219,15 @@ func (ps *pythonSingleton) ImportModule(name string) (*python3.PyObject, error) 
 	}
 	taskWG.Wait()
 
-	// add the module to the loaded modules
-	ps.modules[name] = module
-
 	return module, err
 }
 
-func (ps *pythonSingleton) syncTask(task func()) error {
+// NewTaskSync calls NewTask and waits for the task to finish before returning.
+func (ps *pythonSingleton) NewTaskSync(task func()) error {
 	taskWG, taskErr := ps.newTask(task)
 	if taskErr != nil {
 		return taskErr
 	}
 	taskWG.Wait()
 	return nil
-}
-
-func (ps *pythonSingleton) LoadedModuleNames() []string {
-	names := make([]string, 0, len(ps.modules))
-	for name := range ps.modules {
-		names = append(names, name)
-	}
-	return names
 }
